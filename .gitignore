@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+backend/storage/
+.env
+.env.local
+npm-debug.log*
+*.log
+backend/.env
+frontend/.env

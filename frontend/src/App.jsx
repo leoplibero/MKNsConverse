@@ -15,7 +15,7 @@ const FIXED_TABS = [
   { id: 'gatilhos', label: 'Gatilhos mentais' }
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:3001/api');
 const AUTH_STORAGE_KEY = 'conquista-auth-session';
 const AUTH_VALIDATE_INTERVAL_MS = 60_000;
 

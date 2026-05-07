@@ -12,5 +12,12 @@
     "dev:frontend": "npm run dev --workspace frontend",
     "test": "npm test --workspace backend",
     "pentest": "npm run pentest --workspace backend"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^8.0.10"
   }
 }

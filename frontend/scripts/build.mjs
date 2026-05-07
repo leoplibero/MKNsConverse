@@ -1,5 +1,5 @@
 import { build } from 'vite';
-import { cp, rm } from 'node:fs/promises';
+import { cp, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,4 +17,13 @@ for (const outputDir of outputDirs) {
   if (outputDir === frontendDist) continue;
   await rm(outputDir, { recursive: true, force: true });
   await cp(frontendDist, outputDir, { recursive: true });
+}
+
+for (const outputDir of [frontendDist, ...outputDirs]) {
+  try {
+    const entries = await readdir(outputDir);
+    console.log(`vercel output ready: ${outputDir} (${entries.join(', ')})`);
+  } catch {
+    console.log(`vercel output missing: ${outputDir}`);
+  }
 }

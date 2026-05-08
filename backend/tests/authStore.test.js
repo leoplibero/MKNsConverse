@@ -16,6 +16,8 @@ function createConfig() {
   return {
     authDbPath: path.join(dir, 'auth.json'),
     authTokenTtlMs: 1000 * 60 * 60,
+    authTokenSecret: 'test-token-secret',
+    statelessAuth: false,
     authRecoveryTtlMs: 1000 * 60 * 30
   };
 }
@@ -70,4 +72,24 @@ test('recuperacao redefine senha e emite nova sessao', () => {
     email: 'marta@example.com',
     password: 'SenhaForte123'
   }), /invalido/i);
+});
+
+test('autenticacao stateless valida token sem compartilhar storage', () => {
+  const firstConfig = { ...createConfig(), statelessAuth: true };
+  const secondConfig = {
+    ...createConfig(),
+    statelessAuth: true,
+    authTokenSecret: firstConfig.authTokenSecret
+  };
+
+  const registered = registerUser(firstConfig, {
+    name: 'Vercel',
+    email: 'vercel@example.com',
+    password: 'SenhaForte123'
+  });
+
+  const validated = validateSession(secondConfig, registered.token);
+
+  assert.equal(validated.user.email, 'vercel@example.com');
+  assert.equal(validated.user.name, 'Vercel');
 });

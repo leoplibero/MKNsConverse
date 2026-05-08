@@ -66,6 +66,74 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+function base64UrlEncode(value) {
+  return Buffer.from(value).toString('base64url');
+}
+
+function base64UrlJson(value) {
+  return base64UrlEncode(JSON.stringify(value));
+}
+
+function signTokenPayload(config, encodedPayload) {
+  return crypto
+    .createHmac('sha256', config.authTokenSecret)
+    .update(encodedPayload)
+    .digest('base64url');
+}
+
+function createStatelessToken(config, user, source = 'login') {
+  const issuedAt = Date.now();
+  const expiresAt = issuedAt + config.authTokenTtlMs;
+  const payload = {
+    v: 1,
+    source,
+    issuedAt,
+    expiresAt,
+    user: createPublicUser(user)
+  };
+  const encodedPayload = base64UrlJson(payload);
+  const signature = signTokenPayload(config, encodedPayload);
+
+  return {
+    user: payload.user,
+    token: `session_v1.${encodedPayload}.${signature}`,
+    expiresAt
+  };
+}
+
+function validateStatelessSession(config, token) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3 || parts[0] !== 'session_v1') {
+    throw new AppError('Sessao expirada ou invalida', 401, 'INVALID_SESSION');
+  }
+
+  const [, encodedPayload, signature] = parts;
+  const expectedSignature = signTokenPayload(config, encodedPayload);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  const receivedBuffer = Buffer.from(signature);
+
+  if (expectedBuffer.length !== receivedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)) {
+    throw new AppError('Sessao expirada ou invalida', 401, 'INVALID_SESSION');
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+  } catch {
+    throw new AppError('Sessao expirada ou invalida', 401, 'INVALID_SESSION');
+  }
+
+  if (Number(payload.expiresAt) <= Date.now() || !payload.user?.id || !payload.user?.email) {
+    throw new AppError('Sessao expirada ou invalida', 401, 'INVALID_SESSION');
+  }
+
+  return {
+    user: payload.user,
+    token,
+    expiresAt: payload.expiresAt
+  };
+}
+
 function createPublicUser(user) {
   return {
     id: user.id,
@@ -102,6 +170,10 @@ function revokeUserSessions(store, userId) {
 }
 
 function createSession(config, store, user, source = 'login') {
+  if (config.statelessAuth) {
+    return createStatelessToken(config, user, source);
+  }
+
   revokeUserSessions(store, user.id);
 
   const token = `session_${crypto.randomBytes(24).toString('hex')}`;
@@ -162,6 +234,10 @@ export function authenticateUser(config, payload) {
 }
 
 export function validateSession(config, token) {
+  if (config.statelessAuth) {
+    return validateStatelessSession(config, token);
+  }
+
   const store = loadStore(config);
   pruneExpiredSessions(store);
   const tokenHash = hashToken(token);

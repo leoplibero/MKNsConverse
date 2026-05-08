@@ -42,6 +42,8 @@ export function getConfig(overrides = {}) {
     historyDbPath: env.HISTORY_DB_PATH || path.resolve(__dirname, '../storage/history.sqlite'),
     authDbPath: env.AUTH_DB_PATH || path.resolve(__dirname, '../storage/auth.json'),
     authTokenTtlMs: parseNumber(env.AUTH_TOKEN_TTL_MS, 1000 * 60 * 60 * 24),
+    authTokenSecret: env.AUTH_TOKEN_SECRET || env.ANTHROPIC_API_KEY || 'mkns-development-token-secret-change-me',
+    statelessAuth: env.AUTH_STATELESS === 'true' || env.VERCEL === '1',
     authRecoveryTtlMs: parseNumber(env.AUTH_RECOVERY_TTL_MS, 1000 * 60 * 30),
     forceMock: env.ANTHROPIC_MOCK === 'true'
   };
